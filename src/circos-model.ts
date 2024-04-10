@@ -79,12 +79,14 @@ export class CirCosModel {
   }
 
   initInnerArcGroups(graph: Graph) {
-    const GAP = 0.01
+    const GAP = 0.015
+    const totalGapSize = GAP * (graph.nodes.length - 1)
+    const scale = 1 - totalGapSize
     let start = 0
     const arcGroups = graph.nodes.map(node => {
       let end = 0
       const group = node.edges.map(edge => {
-        end = start + edge.value
+        end = start + edge.value / 2 * scale
         const arc: Arc = {
           node: edge.source,
           shape: {
@@ -92,7 +94,7 @@ export class CirCosModel {
             end: end,
             cx: 0,
             cy: 0,
-            r: 0.8,
+            r: 0.6,
           }
         }
         start = end

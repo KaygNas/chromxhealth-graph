@@ -23,6 +23,8 @@ import type { ComposeOption } from 'echarts/core'
 import React from 'react'
 import { parseGraphModelFromRawData, RawData } from './helper'
 import { CirCosModel } from './circos-model'
+import { CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
+import { inner } from 'echarts/types/src/component/graphic/GraphicView.js'
 
 // 通过 ComposeOption 来组合出一个只有必须组件和图表的 Option 类型
 type ECOption = ComposeOption<CustomSeriesOption | TitleComponentOption | DatasetComponentOption>
@@ -77,8 +79,9 @@ function App() {
             const height = api.getHeight()
             const size = Math.min(width, height)
             const outterArc = circosModel.outterArcs[params.dataIndex]
-            console.log('outterArc', outterArc)
-            return {
+            const innerArcGroup = circosModel.innerArcGroups[params.dataIndex]
+
+            const outterArcEle: CustomRootElementOption = {
               type: 'sector',
               shape: {
                 cx: width / 2,
@@ -92,6 +95,32 @@ function App() {
                 fill: api.visual('color'),
               },
             }
+
+            const innerArcGroupEle: CustomRootElementOption = {
+              type: 'group',
+              children: innerArcGroup.map(innerArc => {
+                return {
+                  type: 'sector',
+                  shape: {
+                    cx: width / 2,
+                    cy: height / 2,
+                    r0: (innerArc.shape.r - 0.05) * size / 2,
+                    r: innerArc.shape.r * size / 2,
+                    startAngle: innerArc.shape.start * Math.PI * 2,
+                    endAngle: innerArc.shape.end * Math.PI * 2,
+                  },
+                  style: {
+                    fill: api.visual('color'),
+                  },
+                }
+              }),
+            }
+
+            const groupEle: CustomRootElementOption = {
+              type: 'group',
+              children: [outterArcEle, innerArcGroupEle],
+            }
+            return groupEle as any
           },
         },
       ],

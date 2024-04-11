@@ -74,7 +74,7 @@ export function initChart(root: HTMLDivElement) {
     series: [
       ...circosModel.outterSectors.map((sector) => getSectorSeriesOption({
         sector,
-        getValue: (sector) => Math.ceil(sector.node.value * totalValue),
+        getValue: (sector) => Math.ceil(sector.node.value * 2 * totalValue),
         labelVisible: true,
       })),
       ...circosModel.innerSectors.map((sector) => getSectorSeriesOption({

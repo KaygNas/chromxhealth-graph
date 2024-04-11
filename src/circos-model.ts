@@ -36,7 +36,8 @@ export interface InnerArc extends Arc {
 }
 
 export interface BezierCurve {
-  edge: Edge
+  start: InnerArc
+  end: InnerArc
   shape: BezierCurveShape
 }
 
@@ -139,7 +140,8 @@ export class CirCosModel {
       const startArcMiddle = getMiddlePointOfArc(startArc)
       const endArcMiddle = getMiddlePointOfArc(endArc)
       return {
-        edge,
+        start: startArc,
+        end: endArc,
         shape: {
           // middle point of the source arc
           x1: startArcMiddle.x,
@@ -147,11 +149,11 @@ export class CirCosModel {
           x2: endArcMiddle.x,
           y2: endArcMiddle.y,
           // control point of the source arc
-          cpx2: startArcMiddle.x,
-          cpy2: startArcMiddle.y,
+          cpx1: startArc.shape.cx,
+          cpy1: startArc.shape.cy,
           // control point of the target arc
-          cpx1: endArcMiddle.x,
-          cpy1: endArcMiddle.y,
+          cpx2: endArc.shape.cx,
+          cpy2: endArc.shape.cy,
         }
       }
     })

@@ -123,10 +123,16 @@ export function initChart(root: HTMLDivElement) {
 }
 
 function getBezierCurveSeriesOption(bezierCurve: BezierCurve) {
+  function getLengthOfArc(arc: Arc) {
+    const { start, end, r } = arc.shape
+    const angle = Math.abs(end - start) * Math.PI * 2
+    const length = angle * r
+    return length
+  }
   const bezierCurveSeriesOption: CustomSeriesOption = {
     type: 'custom',
     coordinateSystem: 'none',
-    name: bezierCurve.edge.source.id,
+    name: bezierCurve.start.parent.node.id,
     renderItem: (params, api) => {
       const width = api.getWidth()
       const height = api.getHeight()
@@ -145,6 +151,9 @@ function getBezierCurveSeriesOption(bezierCurve: BezierCurve) {
         },
         style: {
           stroke: api.visual('color'),
+          strokeOpacity: 0.1,
+          lineWidth: getLengthOfArc(bezierCurve.start) * size,
+          fill: 'none',
         },
       }
 

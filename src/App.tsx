@@ -117,6 +117,7 @@ function App() {
       },
       legend: {
         show: true,
+        bottom: '5%',
       },
       series: [
         ...circosModel.outterArcs.map((arc) => (getArcSeriesOption(arc))),

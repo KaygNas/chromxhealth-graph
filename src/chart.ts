@@ -94,7 +94,7 @@ export function initChart(root: HTMLDivElement) {
       coordinateSystem: 'none',
       name: sector.node.id,
       data: [{ value: getValue(sector) }],
-      renderItem: (params, api) => {
+      renderItem: (_, api) => {
         const arcEle: CustomRootElementOption = {
           type: 'sector',
           shape: {
@@ -166,7 +166,7 @@ function getInnerCurveSeriesOption<T extends InnerCurve>(options: { curve: T, ge
     coordinateSystem: 'none',
     name: curve.start.parent.node.id,
     data: [{ value: getValue(curve) }],
-    renderItem: (params, api) => {
+    renderItem: (_, api) => {
       const curveEle: CustomElementOption = {
         type: 'path',
         shape: {

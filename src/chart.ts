@@ -66,7 +66,10 @@ export function initChart(root: HTMLDivElement) {
     },
     legend: {
       show: true,
-      bottom: '5%',
+      bottom: 0,
+      left: 0,
+      orient: 'vertical',
+      align: 'left',
     },
     series: [
       ...circosModel.outterSectors.map((sector) => getSectorSeriesOption({

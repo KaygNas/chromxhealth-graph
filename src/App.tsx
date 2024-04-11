@@ -10,17 +10,22 @@ function App() {
   }, [])
 
   return (
-    <div
-      ref={chartRef}
-      style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-      <h1>Loading</h1>
-    </div>
+    <main style={{
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <div
+        ref={chartRef}
+        style={{
+          width: '80%',
+          height: '80%',
+        }}>
+        <h1>Loading</h1>
+      </div>
+    </main>
   )
 }
 

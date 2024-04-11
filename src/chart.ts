@@ -24,7 +24,7 @@ import type {
 } from 'echarts/components'
 import type { ComposeOption } from 'echarts/core'
 import { parseGraphModelFromRawData, RawData } from './helper'
-import { Sector, BezierCurve, CirCosModel, InnerSector, OutterSector } from './circos-model'
+import { Sector, InnerCurve, CirCosModel, InnerSector, OutterSector } from './circos-model'
 import { CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
 
 // 通过 ComposeOption 来组合出一个只有必须组件和图表的 Option 类型
@@ -76,7 +76,7 @@ export function initChart(root: HTMLDivElement) {
     series: [
       ...circosModel.outterSectors.map((sector) => (getSectorSeriesOption(sector))),
       ...circosModel.innerSectors.map((sector) => (getSectorSeriesOption(sector))),
-      ...circosModel.innerBezierCurves.map((bezierCurve) => (getBezierCurveSeriesOption(bezierCurve))),
+      ...circosModel.innerCurves.map((bezierCurve) => (getInnerCurveSeriesOption(bezierCurve))),
     ],
   }
 
@@ -122,50 +122,46 @@ export function initChart(root: HTMLDivElement) {
   return chart
 }
 
-function getBezierCurveSeriesOption(bezierCurve: BezierCurve) {
+function getInnerCurveSeriesOption(innerCurve: InnerCurve) {
   function getLengthOfSector(sector: Sector) {
     const { start, end, r } = sector.shape
     const angle = Math.abs(end - start) * Math.PI * 2
     const length = angle * r
     return length
   }
-  const bezierCurveSeriesOption: CustomSeriesOption = {
+  const innerCurveSeriesOption: CustomSeriesOption = {
     type: 'custom',
     coordinateSystem: 'none',
-    name: bezierCurve.start.parent.node.id,
+    name: innerCurve.start.parent.node.id,
     renderItem: (params, api) => {
-      const width = api.getWidth()
-      const height = api.getHeight()
-      const size = Math.min(width, height) / 2
+
       const bezierCurveEle: CustomRootElementOption = {
-        type: 'bezierCurve',
+        type: 'path',
         shape: {
-          x1: bezierCurve.shape.x1 * size,
-          y1: bezierCurve.shape.y1 * size,
-          x2: bezierCurve.shape.x2 * size,
-          y2: bezierCurve.shape.y2 * size,
-          cpx1: bezierCurve.shape.cpx1 * size,
-          cpy1: bezierCurve.shape.cpy1 * size,
-          cpx2: bezierCurve.shape.cpx2 * size,
-          cpy2: bezierCurve.shape.cpy2 * size,
+          pathData: innerCurve.shape.pathData.join(' '),
         },
         style: {
           stroke: api.visual('color'),
           strokeOpacity: 0.1,
-          lineWidth: getLengthOfSector(bezierCurve.start) * size,
+          lineWidth: 0.1,
           fill: 'none',
         },
       }
 
+      const width = api.getWidth()
+      const height = api.getHeight()
+      const size = Math.min(width, height) / 2
       const groupEle: CustomRootElementOption = {
         type: 'group',
         x: width / 2,
         y: height / 2,
+        scaleX: size,
+        scaleY: size,
         children: [bezierCurveEle],
       }
       return groupEle as any
     },
   }
 
-  return bezierCurveSeriesOption
+  return innerCurveSeriesOption
 }

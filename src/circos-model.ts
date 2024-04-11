@@ -1,7 +1,6 @@
 import { Graph, Node, Edge, GraphModel } from "./graph"
 import { assert } from "./utils"
 
-
 export interface SectorShape {
   // 组成圆环的片段，值在 0 到 1 之间
   start: number
@@ -12,15 +11,8 @@ export interface SectorShape {
   r: number
 }
 
-export interface BezierCurveShape {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-  cpx1: number
-  cpy1: number
-  cpx2: number
-  cpy2: number
+export interface PathShape {
+  pathData: string[]
 }
 
 export interface Sector {
@@ -36,17 +28,17 @@ export interface InnerSector extends Sector {
   parent: OutterSector
 }
 
-export interface BezierCurve {
+export interface InnerCurve {
   start: InnerSector
   end: InnerSector
-  shape: BezierCurveShape
+  shape: PathShape
 }
 
 export class CirCosModel {
   graph: Graph
   outterSectors: OutterSector[]
   innerSectors: InnerSector[]
-  innerBezierCurves: BezierCurve[]
+  innerCurves: InnerCurve[]
 
   get model() {
     return this.graph.nodes.map(node => ({ name: node.id, value: node.value }))
@@ -56,7 +48,7 @@ export class CirCosModel {
     this.graph = this.initGraph(graphModel)
     this.outterSectors = this.initOutterSectors(this.graph)
     this.innerSectors = this.initInnerSectors(this.graph, this.outterSectors)
-    this.innerBezierCurves = this.initInnerBezierCurves(this.graph, this.innerSectors)
+    this.innerCurves = this.initInnerCurves(this.graph, this.innerSectors)
   }
 
   initGraph(graphModel: GraphModel) {
@@ -121,7 +113,7 @@ export class CirCosModel {
     return arcGroups.flat()
   }
 
-  initInnerBezierCurves(graph: Graph, innerSectors: InnerSector[]) {
+  initInnerCurves(graph: Graph, innerSectors: InnerSector[]) {
     function findSectorByEdge(source: Node, target: Node) {
       const arcs = innerSectors.filter(sector => sector.parent.node === source)
       const sector = arcs.find(sector => sector.node === target)
@@ -137,7 +129,7 @@ export class CirCosModel {
       return { x, y }
     }
 
-    const curves = graph.edges.map<BezierCurve>(edge => {
+    const curves = graph.edges.map<InnerCurve>(edge => {
       const startSector = findSectorByEdge(edge.source, edge.target)
       const endSector = findSectorByEdge(edge.target, edge.source)
       const startSectorMiddle = getMiddlePointOfSector(startSector)
@@ -146,17 +138,10 @@ export class CirCosModel {
         start: startSector,
         end: endSector,
         shape: {
-          // middle point of the source sector
-          x1: startSectorMiddle.x,
-          y1: startSectorMiddle.y,
-          x2: endSectorMiddle.x,
-          y2: endSectorMiddle.y,
-          // control point of the source sector
-          cpx1: startSector.shape.cx,
-          cpy1: startSector.shape.cy,
-          // control point of the target sector
-          cpx2: endSector.shape.cx,
-          cpy2: endSector.shape.cy,
+          pathData: [
+            `M ${startSectorMiddle.x} ${startSectorMiddle.y}`,
+            `Q 0 0 ${endSectorMiddle.x} ${endSectorMiddle.y}`
+          ]
         }
       }
     })

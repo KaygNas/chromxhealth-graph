@@ -7,6 +7,8 @@ import {
   DatasetComponent,
   // 内置数据转换器组件 (filter, sort)
   TransformComponent,
+  TooltipComponent,
+  LegendComponent,
 } from 'echarts/components'
 import { UniversalTransition } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -18,21 +20,24 @@ import type {
   // 组件类型的定义后缀都为 ComponentOption
   TitleComponentOption,
   DatasetComponentOption,
+  TooltipComponentOption,
+  LegendComponentOption,
 } from 'echarts/components'
 import type { ComposeOption } from 'echarts/core'
 import React from 'react'
 import { parseGraphModelFromRawData, RawData } from './helper'
-import { CirCosModel } from './circos-model'
+import { Arc, CirCosModel } from './circos-model'
 import { CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
-import { inner } from 'echarts/types/src/component/graphic/GraphicView.js'
 
 // 通过 ComposeOption 来组合出一个只有必须组件和图表的 Option 类型
-type ECOption = ComposeOption<CustomSeriesOption | TitleComponentOption | DatasetComponentOption>
+type ECOption = ComposeOption<CustomSeriesOption | TitleComponentOption | TooltipComponentOption | LegendComponentOption | DatasetComponentOption>
 
 // 注册必须的组件
 echarts.use([
   CustomChart,
   TitleComponent,
+  LegendComponent,
+  TooltipComponent,
   DatasetComponent,
   TransformComponent,
   UniversalTransition,
@@ -60,6 +65,43 @@ function App() {
     const chart = echarts.init(root)
     const graphModel = parseGraphModelFromRawData(rawData)
     const circosModel = new CirCosModel(graphModel)
+
+    function getArcSeriesOption(arc: Arc) {
+      const arcSeriesOption: CustomSeriesOption = {
+        // 使用自定义系列
+        type: 'custom',
+        coordinateSystem: 'none',
+        name: arc.node.id,
+        renderItem: (params, api) => {
+          console.log(api.visual('color', 3))
+          const width = api.getWidth()
+          const height = api.getHeight()
+          const size = Math.min(width, height)
+          const arcEle: CustomRootElementOption = {
+            type: 'sector',
+            shape: {
+              cx: width / 2,
+              cy: height / 2,
+              r0: (arc.shape.r - 0.05) * size / 2,
+              r: arc.shape.r * size / 2,
+              startAngle: arc.shape.start * Math.PI * 2,
+              endAngle: arc.shape.end * Math.PI * 2,
+            },
+            style: {
+              fill: api.visual('color'),
+            },
+          }
+
+          const groupEle: CustomRootElementOption = {
+            type: 'group',
+            children: [arcEle],
+          }
+          return groupEle as any
+        },
+      }
+
+      return arcSeriesOption
+    }
     const option: ECOption = {
       title: {
         text: 'Circos和弦图',
@@ -67,64 +109,21 @@ function App() {
       dataset: [
         {
           source: circosModel.model,
+          dimensions: ['name', 'value'],
         },
       ],
+      tooltip: {
+        show: true,
+      },
+      legend: {
+        show: true,
+      },
       series: [
-        {
-          // 使用自定义系列
-          type: 'custom',
-          coordinateSystem: 'none',
-          renderItem: (params, api) => {
-            const width = api.getWidth()
-            const height = api.getHeight()
-            const size = Math.min(width, height)
-            const outterArc = circosModel.outterArcs[params.dataIndex]
-            const innerArcGroup = circosModel.innerArcGroups[params.dataIndex]
-
-            const outterArcEle: CustomRootElementOption = {
-              type: 'sector',
-              shape: {
-                cx: width / 2,
-                cy: height / 2,
-                r0: (outterArc.shape.r - 0.05) * size / 2,
-                r: outterArc.shape.r * size / 2,
-                startAngle: outterArc.shape.start * Math.PI * 2,
-                endAngle: outterArc.shape.end * Math.PI * 2,
-              },
-              style: {
-                fill: api.visual('color'),
-              },
-            }
-
-            const innerArcGroupEle: CustomRootElementOption = {
-              type: 'group',
-              children: innerArcGroup.map(innerArc => {
-                return {
-                  type: 'sector',
-                  shape: {
-                    cx: width / 2,
-                    cy: height / 2,
-                    r0: (innerArc.shape.r - 0.05) * size / 2,
-                    r: innerArc.shape.r * size / 2,
-                    startAngle: innerArc.shape.start * Math.PI * 2,
-                    endAngle: innerArc.shape.end * Math.PI * 2,
-                  },
-                  style: {
-                    fill: api.visual('color'),
-                  },
-                }
-              }),
-            }
-
-            const groupEle: CustomRootElementOption = {
-              type: 'group',
-              children: [outterArcEle, innerArcGroupEle],
-            }
-            return groupEle as any
-          },
-        },
+        ...circosModel.outterArcs.map((arc) => (getArcSeriesOption(arc))),
+        ...circosModel.innerArcs.map((arc) => (getArcSeriesOption(arc))),
       ],
     }
+
     chart.setOption(option)
     return chart
   }

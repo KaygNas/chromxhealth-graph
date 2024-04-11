@@ -1,5 +1,4 @@
-import { init } from "echarts/types/src/echarts.all.js"
-import { EdgeModel, Graph, Node, Edge, NodeModel, GraphModel } from "./graph"
+import { Graph, Node, GraphModel } from "./graph"
 
 
 export interface ArcShape {
@@ -34,18 +33,17 @@ export interface BezierCurve {
 export class CirCosModel {
   graph: Graph
   outterArcs: Arc[]
-  innerArcGroups: Arc[][]
+  innerArcs: Arc[]
   innerBezierCurves: BezierCurve[]
 
   get model() {
-    const ids = this.graph.nodes.map(node => ([node.id]))
-    return [['id'], ...ids]
+    return this.graph.nodes.map(node => ({ name: node.id, value: node.value }))
   }
 
   constructor(graphModel: GraphModel) {
     this.graph = this.initGraph(graphModel)
     this.outterArcs = this.initOutterArcs(this.graph)
-    this.innerArcGroups = this.initInnerArcGroups(this.graph)
+    this.innerArcs = this.initInnerArcs(this.graph)
     this.innerBezierCurves = this.initInnerBezierCurves(this.graph)
   }
 
@@ -57,7 +55,7 @@ export class CirCosModel {
   initOutterArcs(graph: Graph) {
     // Sum of all nodes' value must be 1
     const GAP = 0.01
-    const totalGapSize = GAP * (graph.nodes.length - 1)
+    const totalGapSize = GAP * graph.nodes.length
     const scale = 1 - totalGapSize
     let start = 0
     const arcs = graph.nodes.map(node => {
@@ -78,9 +76,9 @@ export class CirCosModel {
     return arcs
   }
 
-  initInnerArcGroups(graph: Graph) {
+  initInnerArcs(graph: Graph) {
     const GAP = 0.015
-    const totalGapSize = GAP * (graph.nodes.length - 1)
+    const totalGapSize = GAP * graph.nodes.length
     const scale = 1 - totalGapSize
     let start = 0
     const arcGroups = graph.nodes.map(node => {
@@ -88,7 +86,7 @@ export class CirCosModel {
       const group = node.edges.map(edge => {
         end = start + edge.value / 2 * scale
         const arc: Arc = {
-          node: edge.source,
+          node: node === edge.source ? edge.target : edge.source,
           shape: {
             start: start,
             end: end,
@@ -103,7 +101,7 @@ export class CirCosModel {
       start = end + GAP
       return group
     })
-    return arcGroups
+    return arcGroups.flat()
   }
 
   initInnerBezierCurves(graph: Graph) {

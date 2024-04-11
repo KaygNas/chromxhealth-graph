@@ -23,8 +23,8 @@ import type {
   LegendComponentOption,
 } from 'echarts/components'
 import type { ComposeOption } from 'echarts/core'
-import { parseGraphModelFromRawData, RawData } from './helper'
-import { Sector, InnerCurve, CirCosModel, InnerSector, OutterSector } from './circos-model'
+import { parseGraphModelFromRawData, RawData, structureRawData } from './helper'
+import { InnerCurve, CirCosModel, InnerSector, OutterSector } from './circos-model'
 import { CustomElementOption, CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
 
 // 通过 ComposeOption 来组合出一个只有必须组件和图表的 Option 类型
@@ -51,6 +51,7 @@ const rawData: RawData = [
   ['Gene4', 75643, 79184, 77444, 26810],
   ['Gene5', 87332, 87643, 84969, 27234],
 ]
+const { totalValue } = structureRawData(rawData)
 
 export function initChart(root: HTMLDivElement) {
   const chart = echarts.init(root)
@@ -60,12 +61,6 @@ export function initChart(root: HTMLDivElement) {
     title: {
       text: 'Circos和弦图',
     },
-    dataset: [
-      {
-        source: circosModel.model,
-        dimensions: ['name', 'value'],
-      },
-    ],
     tooltip: {
       show: true,
     },
@@ -74,18 +69,28 @@ export function initChart(root: HTMLDivElement) {
       bottom: '5%',
     },
     series: [
-      ...circosModel.outterSectors.map((sector) => (getSectorSeriesOption(sector))),
-      ...circosModel.innerSectors.map((sector) => (getSectorSeriesOption(sector))),
-      ...circosModel.innerCurves.map((bezierCurve) => (getInnerCurveSeriesOption(bezierCurve))),
+      ...circosModel.outterSectors.map((sector) => getSectorSeriesOption(
+        sector,
+        (sector) => Math.ceil(sector.node.value * totalValue),
+      )),
+      ...circosModel.innerSectors.map((sector) => getSectorSeriesOption(
+        sector,
+        (sector) => Math.ceil(sector.edge.value * totalValue),
+      )),
+      ...circosModel.innerCurves.map((curve) => getInnerCurveSeriesOption(
+        curve,
+        (curve) => Math.ceil(curve.start.edge.value * totalValue),
+      )),
     ],
   }
 
-  function getSectorSeriesOption(sector: OutterSector | InnerSector) {
+  function getSectorSeriesOption<T extends OutterSector | InnerSector>(sector: T, getValue: (sector: T) => number) {
     const arcSeriesOption: CustomSeriesOption = {
       // 使用自定义系列
       type: 'custom',
       coordinateSystem: 'none',
       name: sector.node.id,
+      data: [{ value: getValue(sector) }],
       renderItem: (params, api) => {
         const arcEle: CustomRootElementOption = {
           type: 'sector',
@@ -124,11 +129,12 @@ export function initChart(root: HTMLDivElement) {
   return chart
 }
 
-function getInnerCurveSeriesOption(innerCurve: InnerCurve) {
+function getInnerCurveSeriesOption<T extends InnerCurve>(innerCurve: T, getValue: (innerCurve: T) => number) {
   const innerCurveSeriesOption: CustomSeriesOption = {
     type: 'custom',
     coordinateSystem: 'none',
     name: innerCurve.start.parent.node.id,
+    data: [{ value: getValue(innerCurve) }],
     renderItem: (params, api) => {
       const curveEle: CustomElementOption = {
         type: 'path',
@@ -137,16 +143,16 @@ function getInnerCurveSeriesOption(innerCurve: InnerCurve) {
         },
         style: {
           fill: api.visual('color'),
-          opacity: 0.1,
+          opacity: 0.3,
         },
         emphasis: {
           style: {
-            opacity: 1,
+            opacity: 0.8,
           }
         },
         blur: {
           style: {
-            opacity: 0.00,
+            opacity: 0.05,
           }
         }
       }

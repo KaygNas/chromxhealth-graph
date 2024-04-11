@@ -24,6 +24,7 @@ export interface OutterSector extends Sector {
 }
 
 export interface InnerSector extends Sector {
+  edge: Edge
   node: Node
   parent: OutterSector
 }
@@ -39,10 +40,6 @@ export class CirCosModel {
   outterSectors: OutterSector[]
   innerSectors: InnerSector[]
   innerCurves: InnerCurve[]
-
-  get model() {
-    return this.graph.nodes.map(node => ({ name: node.id, value: node.value }))
-  }
 
   constructor(graphModel: GraphModel) {
     this.graph = this.initGraph(graphModel)
@@ -94,6 +91,7 @@ export class CirCosModel {
         end = start + edge.value / 2 * scale
         const sector: InnerSector = {
           parent: outterSector,
+          edge: edge,
           node: edge.source === node ? edge.target : edge.source,
           shape: {
             start: start,

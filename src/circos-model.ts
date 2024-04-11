@@ -121,26 +121,45 @@ export class CirCosModel {
       return sector
     }
 
-    function getMiddlePointOfSector(sector: Sector) {
-      const { start, end, cx, cy, r } = sector.shape
-      const middleAngle = (start + end) / 2 * Math.PI * 2
-      const x = cx + r * Math.cos(middleAngle)
-      const y = cy + r * Math.sin(middleAngle)
-      return { x, y }
+    function getInnerArcOfSector(sector: Sector) {
+      const { start, end, cx, cy, r0 } = sector.shape
+      const OFFSET = -0.02
+      const r = r0 + OFFSET
+      const startPointX = Math.cos(Math.PI * 2 * start) * r + cx
+      const startPointY = Math.sin(Math.PI * 2 * start) * r + cy
+      const endPointX = Math.cos(Math.PI * 2 * end) * r + cx
+      const endPointY = Math.sin(Math.PI * 2 * end) * r + cy
+
+      return {
+        x1: startPointX,
+        y1: startPointY,
+        x2: endPointX,
+        y2: endPointY,
+        cx: cx,
+        cy: cy,
+        r: r
+      }
     }
 
     const curves = graph.edges.map<InnerCurve>(edge => {
       const startSector = findSectorByEdge(edge.source, edge.target)
       const endSector = findSectorByEdge(edge.target, edge.source)
-      const startSectorMiddle = getMiddlePointOfSector(startSector)
-      const endSectorMiddle = getMiddlePointOfSector(endSector)
+      const startArc = getInnerArcOfSector(startSector)
+      const endArc = getInnerArcOfSector(endSector)
       return {
         start: startSector,
         end: endSector,
         shape: {
           pathData: [
-            `M ${startSectorMiddle.x} ${startSectorMiddle.y}`,
-            `Q 0 0 ${endSectorMiddle.x} ${endSectorMiddle.y}`
+            `M ${startArc.x1} ${startArc.y1}`,
+            // arc of start sector
+            `A ${startArc.r} ${startArc.r} 0 0 1 ${startArc.x2} ${startArc.y2}`,
+            // bezier curve to end sector
+            `Q ${startArc.cx} ${startArc.cy} ${endArc.x1} ${endArc.y1}`,
+            // arc of end sector
+            `A ${endArc.r} ${endArc.r} 0 0 1 ${endArc.x2} ${endArc.y2}`,
+            // bezier curve back to start sector
+            `Q ${endArc.cx} ${endArc.cy} ${startArc.x1} ${startArc.y1}`,
           ]
         }
       }

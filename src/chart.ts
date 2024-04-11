@@ -25,7 +25,7 @@ import type {
 import type { ComposeOption } from 'echarts/core'
 import { parseGraphModelFromRawData, RawData } from './helper'
 import { Sector, InnerCurve, CirCosModel, InnerSector, OutterSector } from './circos-model'
-import { CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
+import { CustomElementOption, CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
 
 // 通过 ComposeOption 来组合出一个只有必须组件和图表的 Option 类型
 type ECOption = ComposeOption<CustomSeriesOption | TitleComponentOption | TooltipComponentOption | LegendComponentOption | DatasetComponentOption>
@@ -47,9 +47,9 @@ const rawData: RawData = [
   ['Gene', 'Con1', 'Con2', 'Treat1', 'Treat2'],
   ['Gene1', 87332, 87643, 84969, 87234],
   ['Gene2', 75643, 79184, 77444, 76810],
-  // ['Gene3', 87332, 87643, 84969, 87234],
-  // ['Gene4', 75643, 79184, 77444, 76810],
-  // ['Gene5', 87332, 87643, 84969, 87234],
+  ['Gene3', 87332, 87643, 84969, 87234],
+  ['Gene4', 75643, 79184, 77444, 76810],
+  ['Gene5', 87332, 87643, 84969, 87234],
 ]
 
 export function initChart(root: HTMLDivElement) {
@@ -87,16 +87,13 @@ export function initChart(root: HTMLDivElement) {
       coordinateSystem: 'none',
       name: sector.node.id,
       renderItem: (params, api) => {
-        const width = api.getWidth()
-        const height = api.getHeight()
-        const size = Math.min(width, height) / 2
         const arcEle: CustomRootElementOption = {
           type: 'sector',
           shape: {
-            cx: sector.shape.cx * size,
-            cy: sector.shape.cy * size,
-            r0: sector.shape.r0 * size,
-            r: sector.shape.r * size,
+            cx: sector.shape.cx,
+            cy: sector.shape.cy,
+            r0: sector.shape.r0,
+            r: sector.shape.r,
             startAngle: sector.shape.start * Math.PI * 2,
             endAngle: sector.shape.end * Math.PI * 2,
           },
@@ -105,8 +102,13 @@ export function initChart(root: HTMLDivElement) {
           },
         }
 
+        const width = api.getWidth()
+        const height = api.getHeight()
+        const size = Math.min(width, height) / 2
         const groupEle: CustomRootElementOption = {
           type: 'group',
+          scaleX: size,
+          scaleY: size,
           x: width / 2,
           y: height / 2,
           children: [arcEle],
@@ -123,29 +125,30 @@ export function initChart(root: HTMLDivElement) {
 }
 
 function getInnerCurveSeriesOption(innerCurve: InnerCurve) {
-  function getLengthOfSector(sector: Sector) {
-    const { start, end, r } = sector.shape
-    const angle = Math.abs(end - start) * Math.PI * 2
-    const length = angle * r
-    return length
-  }
   const innerCurveSeriesOption: CustomSeriesOption = {
     type: 'custom',
     coordinateSystem: 'none',
     name: innerCurve.start.parent.node.id,
     renderItem: (params, api) => {
-
-      const bezierCurveEle: CustomRootElementOption = {
+      const curveEle: CustomElementOption = {
         type: 'path',
         shape: {
           pathData: innerCurve.shape.pathData.join(' '),
         },
         style: {
-          stroke: api.visual('color'),
-          strokeOpacity: 0.1,
-          lineWidth: 0.1,
-          fill: 'none',
+          fill: api.visual('color'),
+          opacity: 0.1,
         },
+        emphasis: {
+          style: {
+            opacity: 1,
+          }
+        },
+        blur: {
+          style: {
+            opacity: 0.00,
+          }
+        }
       }
 
       const width = api.getWidth()
@@ -157,7 +160,8 @@ function getInnerCurveSeriesOption(innerCurve: InnerCurve) {
         y: height / 2,
         scaleX: size,
         scaleY: size,
-        children: [bezierCurveEle],
+        children: [curveEle],
+        focus: 'self'
       }
       return groupEle as any
     },

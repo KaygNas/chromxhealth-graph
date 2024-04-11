@@ -69,22 +69,25 @@ export function initChart(root: HTMLDivElement) {
       bottom: '5%',
     },
     series: [
-      ...circosModel.outterSectors.map((sector) => getSectorSeriesOption(
+      ...circosModel.outterSectors.map((sector) => getSectorSeriesOption({
         sector,
-        (sector) => Math.ceil(sector.node.value * totalValue),
-      )),
-      ...circosModel.innerSectors.map((sector) => getSectorSeriesOption(
+        getValue: (sector) => Math.ceil(sector.node.value * totalValue),
+        labelVisible: true,
+      })),
+      ...circosModel.innerSectors.map((sector) => getSectorSeriesOption({
         sector,
-        (sector) => Math.ceil(sector.edge.value * totalValue),
-      )),
-      ...circosModel.innerCurves.map((curve) => getInnerCurveSeriesOption(
+        getValue: (sector) => Math.ceil(sector.edge.value * totalValue),
+        labelVisible: false,
+      })),
+      ...circosModel.innerCurves.map((curve) => getInnerCurveSeriesOption({
         curve,
-        (curve) => Math.ceil(curve.start.edge.value * totalValue),
-      )),
+        getValue: (curve) => Math.ceil(curve.start.edge.value * totalValue),
+      })),
     ],
   }
 
-  function getSectorSeriesOption<T extends OutterSector | InnerSector>(sector: T, getValue: (sector: T) => number) {
+  function getSectorSeriesOption<T extends OutterSector | InnerSector>(options: { sector: T, getValue: (sector: T) => number, labelVisible: boolean }) {
+    const { sector, getValue, labelVisible } = options
     const arcSeriesOption: CustomSeriesOption = {
       // 使用自定义系列
       type: 'custom',
@@ -109,7 +112,7 @@ export function initChart(root: HTMLDivElement) {
 
         const width = api.getWidth()
         const height = api.getHeight()
-        const size = Math.min(width, height) / 2
+        const size = Math.min(width, height) / 2 * 0.8
         const groupEle: CustomRootElementOption = {
           type: 'group',
           scaleX: size,
@@ -117,6 +120,33 @@ export function initChart(root: HTMLDivElement) {
           x: width / 2,
           y: height / 2,
           children: [arcEle],
+        }
+
+        if (labelVisible) {
+          function getMiddlePointOfSector(sector: T) {
+            let { start, end, r, r0, cx, cy } = sector.shape
+            const middle = (start + end) / 2
+            const middleAngle = middle * Math.PI * 2
+            const thickness = r - r0
+            r = r + thickness
+            const x = Math.cos(middleAngle) * r + cx
+            const y = Math.sin(middleAngle) * r + cy
+            return { x, y, angle: middleAngle }
+          }
+          const middlePoint = getMiddlePointOfSector(sector)
+          const textEle: CustomElementOption = {
+            type: 'text',
+            x: middlePoint.x,
+            y: middlePoint.y,
+            rotation: -middlePoint.angle - (Math.PI / 2),
+            style: {
+              text: sector.node.id,
+              align: 'center',
+              verticalAlign: 'middle',
+              fontSize: 0.1,
+            },
+          }
+          groupEle.children.push(textEle)
         }
         return groupEle as any
       },
@@ -129,17 +159,18 @@ export function initChart(root: HTMLDivElement) {
   return chart
 }
 
-function getInnerCurveSeriesOption<T extends InnerCurve>(innerCurve: T, getValue: (innerCurve: T) => number) {
+function getInnerCurveSeriesOption<T extends InnerCurve>(options: { curve: T, getValue: (innerCurve: T) => number }) {
+  const { curve, getValue } = options
   const innerCurveSeriesOption: CustomSeriesOption = {
     type: 'custom',
     coordinateSystem: 'none',
-    name: innerCurve.start.parent.node.id,
-    data: [{ value: getValue(innerCurve) }],
+    name: curve.start.parent.node.id,
+    data: [{ value: getValue(curve) }],
     renderItem: (params, api) => {
       const curveEle: CustomElementOption = {
         type: 'path',
         shape: {
-          pathData: innerCurve.shape.pathData.join(' '),
+          pathData: curve.shape.pathData.join(' '),
         },
         style: {
           fill: api.visual('color'),
@@ -159,7 +190,7 @@ function getInnerCurveSeriesOption<T extends InnerCurve>(innerCurve: T, getValue
 
       const width = api.getWidth()
       const height = api.getHeight()
-      const size = Math.min(width, height) / 2
+      const size = Math.min(width, height) / 2 * 0.8
       const groupEle: CustomRootElementOption = {
         type: 'group',
         x: width / 2,

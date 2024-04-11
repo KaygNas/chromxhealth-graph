@@ -24,7 +24,7 @@ import type {
 } from 'echarts/components'
 import type { ComposeOption } from 'echarts/core'
 import { parseGraphModelFromRawData, RawData } from './helper'
-import { Arc, BezierCurve, CirCosModel, InnerArc, OutterArc } from './circos-model'
+import { Sector, BezierCurve, CirCosModel, InnerSector, OutterSector } from './circos-model'
 import { CustomRootElementOption } from 'echarts/types/src/chart/custom/CustomSeries.js'
 
 // 通过 ComposeOption 来组合出一个只有必须组件和图表的 Option 类型
@@ -74,18 +74,18 @@ export function initChart(root: HTMLDivElement) {
       bottom: '5%',
     },
     series: [
-      ...circosModel.outterArcs.map((arc) => (getArcSeriesOption(arc))),
-      ...circosModel.innerArcs.map((arc) => (getArcSeriesOption(arc))),
+      ...circosModel.outterSectors.map((sector) => (getSectorSeriesOption(sector))),
+      ...circosModel.innerSectors.map((sector) => (getSectorSeriesOption(sector))),
       ...circosModel.innerBezierCurves.map((bezierCurve) => (getBezierCurveSeriesOption(bezierCurve))),
     ],
   }
 
-  function getArcSeriesOption(arc: OutterArc | InnerArc) {
+  function getSectorSeriesOption(sector: OutterSector | InnerSector) {
     const arcSeriesOption: CustomSeriesOption = {
       // 使用自定义系列
       type: 'custom',
       coordinateSystem: 'none',
-      name: arc.node.id,
+      name: sector.node.id,
       renderItem: (params, api) => {
         const width = api.getWidth()
         const height = api.getHeight()
@@ -93,12 +93,12 @@ export function initChart(root: HTMLDivElement) {
         const arcEle: CustomRootElementOption = {
           type: 'sector',
           shape: {
-            cx: arc.shape.cx * size,
-            cy: arc.shape.cy * size,
-            r0: (arc.shape.r - 0.05) * size,
-            r: arc.shape.r * size,
-            startAngle: arc.shape.start * Math.PI * 2,
-            endAngle: arc.shape.end * Math.PI * 2,
+            cx: sector.shape.cx * size,
+            cy: sector.shape.cy * size,
+            r0: sector.shape.r0 * size,
+            r: sector.shape.r * size,
+            startAngle: sector.shape.start * Math.PI * 2,
+            endAngle: sector.shape.end * Math.PI * 2,
           },
           style: {
             fill: api.visual('color'),
@@ -123,8 +123,8 @@ export function initChart(root: HTMLDivElement) {
 }
 
 function getBezierCurveSeriesOption(bezierCurve: BezierCurve) {
-  function getLengthOfArc(arc: Arc) {
-    const { start, end, r } = arc.shape
+  function getLengthOfSector(sector: Sector) {
+    const { start, end, r } = sector.shape
     const angle = Math.abs(end - start) * Math.PI * 2
     const length = angle * r
     return length
@@ -152,7 +152,7 @@ function getBezierCurveSeriesOption(bezierCurve: BezierCurve) {
         style: {
           stroke: api.visual('color'),
           strokeOpacity: 0.1,
-          lineWidth: getLengthOfArc(bezierCurve.start) * size,
+          lineWidth: getLengthOfSector(bezierCurve.start) * size,
           fill: 'none',
         },
       }
